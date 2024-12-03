@@ -1,0 +1,5 @@
+# Enable/Disable OpenAI models (true/false)
+VITE_OPENAI_MODE=false 
+DEBUG=true 
+PORT=5001
+NODE_ENV=production 

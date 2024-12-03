@@ -1,0 +1,41 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # Enable BuildKit features
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs:rw
+      - npm-cache:/root/.npm
+    networks:
+      - app-network
+    healthcheck:
+      test: |
+        CMD-SHELL
+        wget --no-verbose --tries=1 --spider http://localhost:5000/health || exit 1;
+        wget --no-verbose --tries=1 --spider http://0.0.0.0:5000/health || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  npm-cache:
+    driver: local 

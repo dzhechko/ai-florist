@@ -1,10 +1,9 @@
 import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
-import { createServer } from 'vite';
 import compression from 'compression';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { dirname, join } from 'path';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -30,14 +29,30 @@ const log = (message, data) => {
 
 // Basic middleware
 app.use(express.json({ limit: '1mb' }));
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(compression());
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  log('Health check request from:', req.ip);
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage()
+  });
+});
 
 // Add request logging middleware
 app.use((req, res, next) => {
   log('Incoming request:', {
     method: req.method,
     path: req.path,
+    ip: req.ip,
     headers: {
       ...req.headers,
       authorization: req.headers.authorization ? 'Api-Key ***' : 'missing'
@@ -47,6 +62,7 @@ app.use((req, res, next) => {
   next();
 });
 
+// API routes go here
 // YandexGPT completion endpoint
 app.post('/api/yandex/v1/completion', async (req, res) => {
   try {
@@ -74,7 +90,7 @@ app.post('/api/yandex/v1/completion', async (req, res) => {
 
     const url = 'https://llm.api.cloud.yandex.net/foundationModels/v1/completion';
     
-    log('Request body:', JSON.stringify(req.body, null, 2));
+    log('Request body:', req.body);
 
     // Transform request body to match YandexGPT API format
     const transformedBody = {
@@ -223,7 +239,7 @@ app.post('/api/yandex/v1/images/generations', async (req, res) => {
 
     let operationResult;
     let attempts = 0;
-    const maxAttempts = 30; // 30 seconds timeout
+    const maxAttempts = 60; // 60 seconds timeout
     
     while (attempts < maxAttempts) {
       log(`Checking operation status (attempt ${attempts + 1}/${maxAttempts})`, { operationId });
@@ -371,27 +387,52 @@ app.post('/api/yandex/v1/test', async (req, res) => {
   }
 });
 
-// Start server
-const port = process.env.PORT || 5001;
+// Serve static files from the dist directory with proper MIME types
+app.use(express.static(join(__dirname, 'dist'), {
+  maxAge: '1y',
+  etag: true,
+  index: false // Disable directory indexing
+}));
 
-async function startServer() {
-  try {
-    // Create Vite server in middleware mode
-    const vite = await createServer({
-      server: { middlewareMode: true },
-      appType: 'spa'
-    });
-
-    // Use Vite's connect instance as middleware
-    app.use(vite.middlewares);
-
-    app.listen(port, () => {
-      console.log(`Server running on port ${port}`);
-    });
-  } catch (error) {
-    console.error('Failed to start server:', error);
-    process.exit(1);
+// Serve index.html for all other routes (SPA support)
+app.get('*', (req, res, next) => {
+  // Skip API routes
+  if (req.path.startsWith('/api/')) {
+    return next();
   }
-}
+  
+  // Log the request for debugging
+  log('Serving index.html for path:', req.path);
+  
+  res.sendFile(join(__dirname, 'dist', 'index.html'), err => {
+    if (err) {
+      log('Error serving index.html:', err);
+      next(err);
+    }
+  });
+});
 
-startServer();
+// Error handling middleware
+app.use((err, req, res, next) => {
+  log('Error:', err);
+  res.status(500).json({
+    error: {
+      message: DEBUG ? err.message : 'Internal Server Error',
+      ...(DEBUG && { stack: err.stack })
+    }
+  });
+});
+
+const port = process.env.PORT || 5000;
+const host = '0.0.0.0';
+
+app.listen(port, host, () => {
+  console.log(`Server is running on http://${host}:${port}`);
+  log('Server configuration:', {
+    nodeEnv: process.env.NODE_ENV,
+    port: port,
+    host: host,
+    debug: DEBUG,
+    staticPath: join(__dirname, 'dist')
+  });
+});
