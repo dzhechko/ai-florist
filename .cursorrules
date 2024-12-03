@@ -1,0 +1,3 @@
+always think step by step
+always provide enhanced logging end debugging which can be turned on and off by changing the value of a variable DEBUG (true / false)
+do not change anything related to Openai !
