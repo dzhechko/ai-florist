@@ -59,21 +59,31 @@ npm run start:prod
 
 ### Структура проекта
 ```
-ai-florist/
+ai-bouquet-creator/
 ├── src/                  # Исходный код
 │   ├── components/       # React компоненты
 │   ├── services/        # Сервисы для работы с API
 │   ├── store/           # Управление состоянием (Zustand)
 │   ├── types/           # TypeScript типы
+│   ├── utils/           # Утилиты и хелперы
+│   │   └── logger.js    # Конфигурация логирования
 │   └── locales/         # Локализация
-├── docker/              # Docker конфигурация
-│   ├── nginx/           # Конфигурация Nginx
-│   └── node/            # Конфигурация Node.js
+├── scripts/             # Скрипты для обслуживания
+│   └── cleanup-logs.js  # Очистка старых логов
+├── logs/                # Директория для логов (git-ignored)
+├── public/              # Статические файлы
 ├── server.js            # Express сервер
-├── Dockerfile           # Основной файл сборки Docker
+├── Dockerfile           # Конфигурация Docker
 ├── docker-compose.yml   # Конфигурация Docker Compose
 ├── vite.config.ts       # Конфигурация Vite
-└── tsconfig.json        # Конфигурация TypeScript
+├── tsconfig.json        # Конфигурация TypeScript
+├── tailwind.config.js   # Конфигурация Tailwind CSS
+├── postcss.config.js    # Конфигурация PostCSS
+├── .env.example         # Пример переменных окружения
+├── .gitignore          # Список игнорируемых файлов
+├── package.json         # Зависимости и скрипты
+├── LICENSE             # MIT лицензия
+└── README.md           # Документация проекта
 ```
 
 ### Основные компоненты
